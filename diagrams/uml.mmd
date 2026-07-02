@@ -1,15 +1,33 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
-    %% Keep this file updated so it matches your final implementation.
+    %% PawPal+ Pet Care Scheduling System
+    %% Initial design with 3 core classes
 
-    class ClassName {
-        +type attribute
-        +method() returnType
+    class Owner {
+        +String name
+        +Time available_start_time
+        +Time available_end_time
+        +get_available_hours() Float
+        +get_availability_window() Tuple
     }
 
-    class AnotherClass {
-        +type attribute
-        +method() returnType
+    class Pet {
+        +String name
+        +String species
+        +Int age
+        +List special_needs
+        +has_special_needs() Boolean
+        +get_care_requirements() List
     }
 
-    ClassName --> AnotherClass : relationship
+    class Task {
+        +String title
+        +Int duration_minutes
+        +String priority
+        +String description
+        +get_priority_value() Int
+        +get_duration() Int
+    }
+
+    %% Relationships
+    Owner "1" --> "*" Pet : owns
+    Pet "1" --> "*" Task : needs

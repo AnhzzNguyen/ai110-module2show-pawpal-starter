@@ -1,11 +1,26 @@
 # PawPal+ Project Reflection
 
 ## 1. System Design
+- core actions: add a pet, schedule a walk, see today's tasks
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+- Brainstorm the main objects needed for the system. For each object, determine:
+  1. Owner
+Attributes: name, available_start_time, available_end_time (daily availability window)
+Methods: get_available_hours(), get_availability_window()
+Purpose: Represents the pet owner with time constraints for scheduling
+
+2. Pet
+Attributes: name, species (dog/cat/other), age, special_needs (list)
+Methods: has_special_needs(), get_care_requirements()
+Purpose: Represents the pet and its characteristics that affect care planning
+
+3. Task
+Attributes: title, duration_minutes, priority (low/medium/high), description
+Methods: get_priority_value(), get_duration()
+Purpose: Represents individual care tasks (e.g., "morning walk", "feeding", "playtime")
+
 
 **b. Design changes**
 
