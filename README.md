@@ -12,6 +12,241 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 
 Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
 
+## ✨ Features & Algorithms
+
+PawPal+ implements **8 core scheduling algorithms** to provide intelligent pet care planning:
+
+### **1. 🎯 Greedy Task Scheduling Algorithm**
+**Purpose:** Fit maximum priority tasks into owner's available time window  
+**Algorithm:**
+1. Sort all tasks by priority (HIGH → MEDIUM → LOW)
+2. For each task in priority order:
+   - Calculate task duration
+   - Check if task fits in remaining time window
+   - If yes: add to schedule, advance time cursor
+   - If no: skip (task doesn't fit)
+3. Return scheduled tasks (in priority order)
+
+**Time Complexity:** O(n log n) for sorting + O(n) for scheduling = O(n log n)  
+**Space Complexity:** O(n)  
+**Use Case:** Generate a daily schedule that respects owner availability and task priorities
+
+**Example:**
+```python
+# Owner available 8am-10pm (14 hours = 840 min)
+tasks = [
+    Task("Walk", 30, HIGH),      # Fits at 8:00-8:30
+    Task("Feed", 15, HIGH),      # Fits at 8:30-8:45
+    Task("Play", 20, LOW),       # Fits at 8:45-9:05
+    Task("Train", 120, HIGH)     # Doesn't fit (only 831 min left)
+]
+# Result: [Walk, Feed, Play] scheduled
+```
+
+---
+
+### **2. 📊 Multi-Key Sorting Algorithms**
+
+#### **a) Priority-First Sorting**
+**Algorithm:** Sort by priority descending, then by scheduled_time ascending  
+**Key:** `(-priority_value, scheduled_time_or_max)`  
+**Complexity:** O(n log n)  
+**Result:** HIGH tasks first (sorted by time), then MEDIUM, then LOW
+
+#### **b) Chronological Sorting**
+**Algorithm:** Sort by scheduled_time, unscheduled tasks (None) sort to end  
+**Key:** `(is_unscheduled, scheduled_time_or_max)`  
+**Complexity:** O(n log n)  
+**Result:** Tasks ordered earliest → latest, with unscheduled at end
+
+#### **c) Duration-Based Sorting**
+**Algorithm:** Sort by duration ascending (shortest first)  
+**Key:** `duration_minutes`  
+**Complexity:** O(n log n)  
+**Result:** Find quick tasks to fit in gaps
+
+**Example:**
+```python
+tasks = [
+    Task("Walk", 30, HIGH, time=18:00),
+    Task("Feed", 15, HIGH, time=8:30),
+    Task("Play", 20, LOW),
+]
+# Priority-then-time: [Feed (HIGH, 8:30), Walk (HIGH, 18:00), Play (LOW, unscheduled)]
+# Chronological: [Feed (8:30), Walk (18:00), Play (unscheduled)]
+# Duration: [Feed (15), Play (20), Walk (30)]
+```
+
+---
+
+### **3. ⚠️ Conflict Detection Algorithm (3-Tier Severity)**
+**Purpose:** Identify scheduling conflicts between tasks  
+**Algorithm:**
+1. Gather all scheduled tasks with their times
+2. For each pair of tasks (nested loop):
+   - Extract start/end times
+   - Check for overlap: `start1 < end2 AND start2 < end1`
+   - Calculate overlap duration if yes
+   - Classify severity based on pet relationship
+3. Return conflicts sorted by severity (CRITICAL > WARNING > INFO)
+
+**Time Complexity:** O(n²) for pair comparisons  
+**Space Complexity:** O(c) where c = number of conflicts  
+**Severity Rules:**
+- 🚨 **CRITICAL:** Different pets at same time → owner can't do both
+- ⚠️ **WARNING:** Same pet overlapping → pet can't do both  
+- ℹ️ **INFO:** Back-to-back with no buffer → efficiency warning
+
+**Example:**
+```python
+# Mochi: Walk 8:00-8:30
+# Whiskers: Feed 8:15-8:30
+# Overlap: 8:15-8:30 (15 minutes)
+# Result: CRITICAL (different pets, same time)
+
+# Mochi: Walk 8:00-8:30
+# Mochi: Feed 8:15-8:30
+# Overlap: 8:15-8:30 (15 minutes)
+# Result: WARNING (same pet, overlapping)
+```
+
+---
+
+### **4. 🔄 Task Expansion Algorithm (Recurring Tasks)**
+**Purpose:** Explode recurring tasks into individual instances for scheduling analysis  
+**Algorithm:**
+```
+for each task in input_tasks:
+    if frequency == ONCE:
+        add task once
+    elif frequency == DAILY:
+        for i in range(num_days):
+            add deep_copy(task)
+    elif frequency == WEEKLY:
+        num_weeks = ceil(num_days / 7)
+        for i in range(num_weeks):
+            add deep_copy(task)
+    elif frequency == MONTHLY:
+        if num_days >= 30:
+            add deep_copy(task)
+```
+
+**Time Complexity:** O(n * m) where m = average expansion factor  
+**Space Complexity:** O(output_size)  
+**Use Case:** Generate multi-day schedules for analysis or conflict detection
+
+**Example:**
+```python
+tasks = [
+    Task("Walk", frequency=DAILY),    # Expands to 7 copies
+    Task("Vet Visit", frequency=ONCE), # 1 copy
+    Task("Groom", frequency=WEEKLY),   # 1 copy (≤7 days)
+]
+expanded = expand_recurring_tasks(tasks, num_days=7)
+# Result: 9 total tasks (7 walks + 1 vet + 1 groom)
+```
+
+---
+
+### **5. 🔎 Filtering Algorithms**
+
+#### **a) Single-Criterion Filtering (Status)**
+**Algorithm:** Linear scan with conditional inclusion  
+**Key:** `is_completed == (status == "completed")`  
+**Complexity:** O(n)  
+**Result:** All tasks matching status
+
+#### **b) Pet Name Filtering**
+**Algorithm:**
+1. Linear search for pet by name: O(p)
+2. Filter pet's tasks by status: O(t)
+
+**Complexity:** O(p + t) where p = pets, t = tasks for that pet  
+**Result:** Tasks for specific pet matching status
+
+#### **c) Multi-Criterion Filtering**
+**Algorithm:** Apply filters sequentially (pet → status → priority)  
+**Complexity:** O(n) per criterion  
+**Result:** Tasks matching all specified criteria
+
+**Example:**
+```python
+# Filter Mochi's incomplete tasks
+filter_by_pet_name(owner, "Mochi", status="incomplete")
+# Linear search owner.pets for "Mochi" → O(p)
+# Filter Mochi.tasks by incomplete → O(t)
+# Total: O(p + t)
+```
+
+---
+
+### **6. ♻️ Recurring Task Regeneration Algorithm**
+**Purpose:** Mark task complete and auto-create next occurrence  
+**Algorithm:**
+```
+mark_task_complete()
+if frequency in [DAILY, WEEKLY]:
+    new_task = deep_copy(task)
+    new_task.mark_incomplete()
+    pet.add_task(new_task)
+    return new_task
+else:
+    return None
+```
+
+**Time Complexity:** O(1) for deep copy of small object  
+**Space Complexity:** O(1)  
+**Behavior:**
+- DAILY: Creates next day's task (same time)
+- WEEKLY: Creates next week's task  
+- ONCE/MONTHLY: No regeneration (returns None)
+
+**Example:**
+```python
+# Mark morning walk complete
+next_walk = scheduler.complete_recurring_task(mochi, walk)
+# Returns new incomplete walk task for next day
+# Mochi.tasks grows from 3 → 4 items
+```
+
+---
+
+### **7. 📅 Daily Schedule Generation Algorithm**
+**Purpose:** Create daily schedule for all pets  
+**Algorithm:**
+```
+for each pet in owner.pets:
+    pet_tasks = owner.get_incomplete_tasks()
+    scheduled = schedule_tasks(owner, pet, pet_tasks, date)
+    daily_schedule[pet.name] = scheduled
+return daily_schedule
+```
+
+**Time Complexity:** O(p * n log n) where p = pets, n = tasks  
+**Space Complexity:** O(p * s) where s = scheduled tasks per pet  
+**Result:** Dict mapping pet name → sorted list of scheduled tasks
+
+---
+
+### **8. 📊 Task Summary Analytics Algorithm**
+**Purpose:** Generate statistics on tasks  
+**Algorithm:**
+```
+aggregate_by_priority()
+count_completed = sum(1 for t in tasks if t.is_completed)
+count_incomplete = sum(1 for t in tasks if not t.is_completed)
+high = sum(1 for t in tasks if priority == HIGH)
+medium = sum(1 for t in tasks if priority == MEDIUM)
+low = sum(1 for t in tasks if priority == LOW)
+return {total, completed, incomplete, high, medium, low}
+```
+
+**Time Complexity:** O(n) for single pass aggregation  
+**Space Complexity:** O(1) constant  
+**Result:** Summary statistics for dashboard/reporting
+
+---
+
 ## What you will build
 
 Your final app should:
@@ -449,12 +684,361 @@ The demo includes:
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### Main UI Features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The PawPal+ Streamlit app provides an intuitive interface for managing pet care tasks:
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+#### **1️⃣ Owner Setup Section** 👤
+- **Input:** Owner name, availability window (start/end times)
+- **Display:** Owner metrics card showing available hours and time window
+- **Purpose:** Define constraints for scheduling
+
+#### **2️⃣ Pet Management Section** 🐾
+- **Actions:** Add new pets (name, species, age, special needs)
+- **Display:** Professional table showing all pets with their task counts
+- **Expandable Details:** View each pet's stats (total time, priorities, recurring tasks)
+
+#### **3️⃣ Care Tasks Section** 📋
+- **Actions:** Add tasks (title, duration, priority, frequency, description)
+- **Features:** 
+  - Sort by: Priority (High→Low), Time (Early→Late), Duration (Short→Long)
+  - Filter by: Pet name, Completion status
+  - View as professional dataframe with all task details
+- **Display:** Task statistics (completed count, total duration, high-priority tasks)
+
+#### **4️⃣ Daily Schedule Section** 📅
+- **Action:** Generate schedule for today
+- **Display:**
+  - 🚨 **Conflict Alerts** (CRITICAL/WARNING/INFO with suggestions)
+  - ✅ **Daily Schedule by Pet** (sortable, with times and notes)
+  - 📊 **Task Summary** (total tasks, completion, priority breakdown, progress bar)
+
+---
+
+### Example Workflow: Start to Schedule
+
+Follow this step-by-step workflow to experience PawPal+ in action:
+
+**Step 1: Set Up Owner**
+```
+1. Enter "Jordan" as owner name
+2. Set availability: 8:00 AM to 10:00 PM (14 hours)
+→ System shows: Jordan has 14.0 hours available per day
+```
+
+**Step 2: Add Pets**
+```
+1. Add Pet #1: Name="Mochi", Species="dog", Age=3
+   - Special needs: "needs lots of exercise"
+   
+2. Add Pet #2: Name="Whiskers", Species="cat", Age=5
+   - Special needs: "sensitive stomach"
+   
+→ System displays both pets in a professional table
+```
+
+**Step 3: Add Tasks (Mixed Priorities & Frequencies)**
+```
+1. Mochi's tasks:
+   • Morning Walk (30 min, HIGH, daily) @ 8:00 AM
+   • Breakfast (15 min, HIGH, daily) @ 8:30 AM
+   • Give Medication (10 min, HIGH, daily) @ 8:20 AM
+   • Evening Walk (45 min, MEDIUM, daily) @ 6:00 PM
+   
+2. Whiskers' tasks:
+   • Cat Meal (10 min, HIGH, daily) @ 12:00 PM
+   • Clean Litter Box (10 min, MEDIUM, daily) @ 9:00 AM
+   • Brush Whiskers (15 min, MEDIUM, daily) @ 8:30 AM
+   • Playtime (20 min, LOW, daily) @ 7:00 PM
+```
+
+**Step 4: Sort & Filter Tasks**
+```
+User selects different sort options:
+- "Priority (High→Low)": HIGH tasks group first, then MEDIUM, then LOW
+- "Time (Early→Late)": Tasks ordered by scheduled time
+- "Duration (Short→Long)": Quick 10-min tasks appear first
+```
+
+**Step 5: Generate Schedule**
+```
+Click "Generate schedule"
+→ System performs:
+   ✅ Conflict detection (finds overlaps and severity)
+   ✅ Task expansion (expands DAILY tasks)
+   ✅ Schedule generation (per-pet daily schedule)
+   ✅ Analytics (summary statistics)
+```
+
+**Step 6: Review Results**
+```
+See:
+- 🚨 CRITICAL conflicts flagged (owner can't do both tasks)
+- ⚠️ WARNING conflicts (same pet overlapping)
+- ℹ️ INFO alerts (no time buffer between tasks)
+- 📅 Organized schedule by pet with times
+- 📊 Progress metrics (completed %, by priority)
+```
+
+**Step 7: Complete Task & Auto-Regenerate**
+```
+User marks "Morning Walk" as complete
+→ System automatically creates next day's walk task
+→ Mochi's task list grows: 4 → 5 items
+→ New task appears as incomplete (⏳)
+```
+
+---
+
+### Key Scheduler Behaviors Demonstrated
+
+#### **🔀 Sorting in Action**
+The demo shows how tasks reorder based on different criteria:
+- **Priority-First Sorting:** All HIGH tasks together (sorted by time), then MEDIUM, then LOW
+- **Chronological Sorting:** Tasks ordered 8:00 → 8:20 → 8:30 → 9:00 → 12:00 → 18:00 → 19:00
+- **Duration Sorting:** 10-min tasks appear first, then 15-min, then 20-min, then 30-min, 45-min
+
+**Example Output:**
+```
+Priority-sorted list:
+  HIGH   | Morning Walk         @ 08:00
+  HIGH   | Give Mochi Medication @ 08:20
+  HIGH   | Breakfast            @ 08:30
+  HIGH   | Cat Meal             @ 12:00
+  MEDIUM | Brush Whiskers       @ 08:30
+  MEDIUM | Clean Litter Box     @ 09:00
+  MEDIUM | Evening Walk         @ 18:00
+  LOW    | Playtime             @ 19:00
+```
+
+#### **🔍 Filtering in Action**
+Apply filters individually or combine them:
+- **Filter by Pet:** Show only Mochi's 4 tasks or Whiskers' 4 tasks
+- **Filter by Status:** Show 3 completed tasks vs. 6 incomplete
+- **Combine Filters:** Get Mochi's incomplete HIGH-priority tasks only
+
+#### **⚠️ Conflict Detection in Action**
+The demo reveals all 3 severity levels:
+
+- **🚨 CRITICAL (1 found):** Different pets at same time
+  ```
+  Owner can't do both at 08:30!
+  • Mochi: Breakfast (08:30-08:45)
+  • Whiskers: Brush Whiskers (08:30-08:45)
+  → Suggestion: Reschedule one task to 08:45 or later
+  ```
+
+- **⚠️ WARNING (3 found):** Same pet overlapping
+  ```
+  Mochi's overlap: Morning Walk (08:00-08:30) vs Medication (08:20-08:30)
+  Overlap: 10 minutes
+  → Suggestion: Reschedule medication to 08:30 or reduce walk duration
+  ```
+
+- **ℹ️ INFO (7 found):** No time buffer between tasks
+  ```
+  No buffer: Morning Walk ends at 08:30, Breakfast starts at 08:30
+  → Suggestion: Add 5-10 minute buffer for transitions
+  ```
+
+#### **♻️ Recurring Task Management**
+Demo shows:
+- **Before:** Mochi has 4 tasks
+- **Action:** Mark "Morning Walk" (DAILY) as complete
+- **After:** Mochi has 5 tasks (original marked ✅, new task added as ⏳)
+- **Result:** Next day's walk automatically created with same properties
+
+#### **📊 Schedule Generation**
+For each pet, system generates organized daily schedule:
+```
+Mochi's Schedule (4 tasks fit in 14-hour window):
+  1. Morning Walk (HIGH, 30min) @ 08:00
+  2. Give Medication (HIGH, 10min) @ 08:20
+  3. Breakfast (HIGH, 15min) @ 08:30
+  4. Evening Walk (MEDIUM, 45min) @ 18:00
+  Total: 100 minutes (6% of available time)
+```
+
+---
+
+### Sample CLI Output (Running `python3 main.py`)
+
+```
+============================================================
+  🐾 PawPal+ System Demo 🐾
+============================================================
+
+✓ Created owner: Jordan
+  Available: 08:00:00 to 22:00:00
+  Total hours available: 14.0 hours
+
+
+============================================================
+  Adding Pets
+============================================================
+
+✓ Added: Mochi (dog, 3 years old)
+  Special needs: needs lots of exercise
+
+✓ Added: Whiskers (cat, 5 years old)
+  Special needs: sensitive stomach
+
+============================================================
+  Adding Care Tasks
+============================================================
+
+✓ Task 1: Morning Walk (30min, HIGH, daily)
+✓ Task 2: Breakfast (15min, HIGH, daily)
+✓ Task 3: Evening Walk (45min, MEDIUM, daily)
+✓ Task 4: Clean Litter Box (10min, MEDIUM, daily)
+✓ Task 5: Cat Meal (10min, HIGH, daily)
+✓ Task 6: Playtime (20min, LOW, daily)
+✓ Task 7: Give Mochi Medication (10min, HIGH, daily) [CONFLICT with Breakfast]
+✓ Task 8: Brush Whiskers (15min, MEDIUM, daily) [CRITICAL: Owner can't do both at 8:30!]
+
+============================================================
+  Scheduling Today's Tasks
+============================================================
+
+Date: Friday, July 03, 2026
+
+============================================================
+  📅 TODAY'S SCHEDULE 📅
+============================================================
+
+🐾 Mochi's Schedule:
+   1. [HIGH]   Morning Walk (30min) @ 08:00
+   2. [HIGH]   Give Mochi Medication (10min) @ 08:20
+   3. [HIGH]   Breakfast (15min) @ 08:30
+   4. [MEDIUM] Evening Walk (45min) @ 18:00
+
+🐾 Whiskers's Schedule:
+   1. [HIGH]   Cat Meal (10min) @ 12:00
+   2. [MEDIUM] Brush Whiskers (15min) @ 08:30
+   3. [MEDIUM] Clean Litter Box (10min) @ 09:00
+   4. [LOW]    Playtime (20min) @ 19:00
+
+============================================================
+  🧪 TESTING SORT & FILTER METHODS 🧪
+============================================================
+
+TEST 1: Sort by time (earliest first)
+  • Morning Walk         @ 08:00:00
+  • Give Mochi Medication @ 08:20:00
+  • Breakfast            @ 08:30:00
+  • Brush Whiskers       @ 08:30:00
+  • Clean Litter Box     @ 09:00:00
+  • Cat Meal             @ 12:00:00
+  • Evening Walk         @ 18:00:00
+  • Playtime             @ 19:00:00
+
+TEST 2: Sort by duration (shortest first)
+  • Give Mochi Medication (10min)
+  • Clean Litter Box     (10min)
+  • Cat Meal             (10min)
+  • Breakfast            (15min)
+  • Brush Whiskers       (15min)
+  • Playtime             (20min)
+  • Morning Walk         (30min)
+  • Evening Walk         (45min)
+
+TEST 3: Sort by priority (HIGH→LOW), then by time
+  🔴 HIGH   | Morning Walk         @ 08:00:00
+  🔴 HIGH   | Give Mochi Medication @ 08:20:00
+  🔴 HIGH   | Breakfast            @ 08:30:00
+  🔴 HIGH   | Cat Meal             @ 12:00:00
+  🟡 MEDIUM | Brush Whiskers       @ 08:30:00
+  🟡 MEDIUM | Clean Litter Box     @ 09:00:00
+  🟡 MEDIUM | Evening Walk         @ 18:00:00
+  🟢 LOW    | Playtime             @ 19:00:00
+
+TEST 4: Filter tasks by pet name
+  Mochi's tasks (4): Morning Walk, Breakfast, Evening Walk, Give Mochi Medication
+  Whiskers' tasks (4): Clean Litter Box, Cat Meal, Playtime, Brush Whiskers
+
+TEST 5: Filter by completion status
+  Completed tasks (3): Morning Walk, Breakfast, Cat Meal
+  Incomplete tasks (5): Evening Walk, Give Mochi Medication, Clean Litter Box, Playtime, Brush Whiskers
+
+============================================================
+  ♻️ TESTING RECURRING TASK COMPLETION ♻️
+============================================================
+
+Completing 'Morning Walk' (DAILY recurring task)...
+  Before: Mochi has 4 tasks
+  After: Mochi has 5 tasks
+  ✓ New task created automatically!
+    Original: Morning Walk - Completed (✅)
+    Next: Morning Walk - Incomplete (⏳)
+
+Completing 'Playtime' (LOW priority task)...
+  ✓ New task created (frequency: daily)
+
+Final task summary: 10 total (4 completed, 6 incomplete)
+
+============================================================
+  🚨 CONFLICT DETECTION TEST 🚨
+============================================================
+
+Found 11 conflict(s):
+
+[INFO] No time buffer between tasks
+  • Morning Walk ends at 08:30, Breakfast starts at 08:30
+  • Suggestion: Add 5-10 minute buffer for transitions
+
+[WARNING] Same pet overlapping
+  • Mochi: Morning Walk (08:00-08:30) vs Medication (08:20-08:30)
+  • Overlap: 10 minutes
+  • Suggestion: Reschedule medication or reduce walk duration
+
+[CRITICAL] Owner can't do both tasks!
+  • Mochi: Breakfast (08:30-08:45)
+  • Whiskers: Brush Whiskers (08:30-08:45)
+  • Overlap: 15 minutes
+  • Suggestion: Reschedule one task to 08:45 or later
+
+============================================================
+  📊 TASK SUMMARY 📊
+============================================================
+
+Total Tasks: 10
+  ✅ Completed: 4
+  ⏳ Incomplete: 6
+
+By Priority:
+  🔴 High: 5
+  🟡 Medium: 3
+  🟢 Low: 2
+
+============================================================
+  👤 OWNER SUMMARY 👤
+============================================================
+
+Jordan has 2 pet(s):
+  • Mochi: 5 task(s)
+  • Whiskers: 5 task(s)
+
+✨ Demo complete! All systems operational. ✨
+```
+
+---
+
+### To Run the Demo
+
+Try the interactive Streamlit app:
+```bash
+streamlit run app.py
+```
+
+Or see all features in action with the CLI demo:
+```bash
+python3 main.py
+```
+
+The demo showcases:
+- ✅ **Sorting** in 3 ways (priority, time, duration)
+- ✅ **Filtering** by pet name and status
+- ✅ **Conflict Detection** with 3-tier severity (CRITICAL/WARNING/INFO)
+- ✅ **Recurring Tasks** auto-regenerating when completed
+- ✅ **Schedule Generation** organized by pet with times
+- ✅ **Analytics** showing summary statistics

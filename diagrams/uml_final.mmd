@@ -1,6 +1,7 @@
 classDiagram
     %% PawPal+ Pet Care Scheduling System (Phase 2 - Final Implementation)
     %% Complete class diagram with all attributes, methods, and relationships
+    %% Validated against pawpal_system.py - 100% coverage
 
     %% ============================================================================
     %% ENUMS
@@ -77,23 +78,23 @@ classDiagram
     %% ============================================================================
 
     class Scheduler {
-        %% Core Scheduling
+        %% Core Scheduling (3 methods)
         +schedule_tasks(Owner, Pet, List[Task], DateTime) List[Task]
         +get_daily_schedule(Owner, DateTime) Dict
         +get_task_summary(Owner) Dict
-        %% Sorting (Multi-criteria)
+        %% Sorting (Multi-criteria) (4 methods)
         +prioritize_tasks(List[Task]) List[Task]
         +sort_by_time(List[Task]) List[Task]
         +sort_by_duration(List[Task]) List[Task]
         +sort_by_priority_then_time(List[Task]) List[Task]
-        %% Filtering
+        %% Filtering (3 methods)
         +filter_tasks(List[Task], Pet?, String, Priority?) List[Task]
         +filter_by_pet_name(Owner, String, String) List[Task]
         +filter_by_status(List[Task], String) List[Task]
-        %% Conflict Detection (3-tier severity)
+        %% Conflict Detection (3-tier severity) (2 methods)
         +detect_conflicts(List[Task], Dict?) List[Tuple]
         +detect_conflicts_with_warnings(Owner, DateTime?) List[Dict]
-        %% Recurring Task Management
+        %% Recurring Task Management (2 methods)
         +expand_recurring_tasks(List[Task], Int) List[Task]
         +complete_recurring_task(Pet, Task) Task?
     }
@@ -110,7 +111,7 @@ classDiagram
     Task --> Priority : uses
     Task --> Frequency : uses
 
-    %% Scheduler Relationships (works with domain model)
+    %% Scheduler Relationships (orchestrator pattern)
     Scheduler --> Owner : uses/schedules
     Scheduler --> Pet : filters/operates on
     Scheduler --> Task : processes/expands
@@ -118,7 +119,7 @@ classDiagram
     Scheduler --> Frequency : reads for recurrence
 
     %% ============================================================================
-    %% NOTES
+    %% DESIGN NOTES
     %% ============================================================================
-    note "Scheduler acts as the 'orchestrator' of the system\nIt coordinates Owner, Pet, and Task objects\nfor intelligent scheduling and conflict detection"
-    note "Priority & Frequency enums enable\ntype-safe scheduling decisions"
+    note "🐾 PawPal+ Architecture:\n\nScheduler acts as the 'orchestrator' of the system.\nIt coordinates Owner, Pet, and Task objects\nfor intelligent scheduling and conflict detection."
+    note "Priority & Frequency enums enable\ntype-safe scheduling decisions.\n\nPhase 2 Added:\n• Scheduler class (14 methods)\n• Task state management\n• Conflict detection\n• Recurring task support\n• Multi-criteria sorting & filtering"
